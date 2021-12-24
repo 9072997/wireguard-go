@@ -8,6 +8,7 @@ package device
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -201,6 +202,17 @@ func (device *Device) IpcSetOperation(r io.Reader) (err error) {
 
 func (device *Device) handleDeviceLine(key, value string) error {
 	switch key {
+	case "auto_prefix":
+		prefix, err := hex.DecodeString(value)
+		if err != nil {
+			return ipcErrorf(ipc.IpcErrorInvalid, "failed to parse prefix: %w", err)
+		}
+		if len(prefix) != 8 {
+			return ipcErrorf(ipc.IpcErrorInvalid, "invalid prefix length: %d", len(prefix)*8)
+		}
+		copy(device.autoAssignPrefix[:], prefix)
+		device.log.Verbosef("UAPI: Set auto_prefix %s", value)
+
 	case "private_key":
 		var sk NoisePrivateKey
 		err := sk.FromMaybeZeroHex(value)

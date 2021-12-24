@@ -6,6 +6,9 @@
 package device
 
 import (
+	"encoding/hex"
+	"fmt"
+	"net"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -88,6 +91,8 @@ type Device struct {
 	ipcMutex sync.RWMutex
 	closed   chan struct{}
 	log      *Logger
+
+	autoAssignPrefix [8]byte
 }
 
 // deviceState represents the state of a Device.
@@ -324,11 +329,44 @@ func NewDevice(tunDevice tun.Device, bind conn.Bind, logger *Logger) *Device {
 	return device
 }
 
+// AutoIPv6 returns the IPv6 address that should be assigned to the
+// given public  key.
+func (device *Device) AutoIPv6(pk NoisePublicKey) net.IP {
+	// allow the peer to use an IPv6 address with the prefix from our /64 subnet
+	// and a suffix made of the last 64 bits of their public key
+	suffix := pk[NoisePublicKeySize-8:]
+	addr := append(device.autoAssignPrefix[:], suffix...)
+	return net.IP(addr)
+}
+
+func (device *Device) AutoRegister(pk NoisePublicKey) {
+	hexkey := hex.EncodeToString([]byte(pk[:]))
+
+	addr := device.AutoIPv6(pk)
+	if device.allowedips.Lookup(addr) != nil {
+		device.log.Errorf("%s - Automatic registration failed: collision with already registered peer", hexkey)
+		return
+	}
+
+	// create the new peer
+	device.IpcSet(fmt.Sprintf("public_key=%s\nallowed_ip=%s/128\n", hexkey, addr.String()))
+	device.log.Verbosef("%s - Automatically registered with IP %s", hexkey, net.IP(addr))
+}
+
 func (device *Device) LookupPeer(pk NoisePublicKey) *Peer {
 	device.peers.RLock()
 	defer device.peers.RUnlock()
 
-	return device.peers.keyMap[pk]
+	peer := device.peers.keyMap[pk]
+	if peer == nil {
+		// if the peer is not registered, try autoregistration.
+		// do this in annother thread to avoid deadlock.
+		// note tht this means the first message from a new peer
+		// will be ignored. That's ok. They will retry.
+		go device.AutoRegister(pk)
+	}
+
+	return peer
 }
 
 func (device *Device) RemovePeer(key NoisePublicKey) {
