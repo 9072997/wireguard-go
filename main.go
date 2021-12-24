@@ -224,6 +224,16 @@ func main() {
 
 	device := device.NewDevice(tun, conn.NewDefaultBind(), logger)
 
+	// read and apply config
+	config, err := os.ReadFile("/etc/wireguard.ipc")
+	if err != nil {
+		panic(err)
+	}
+	err = device.IpcSet(string(config))
+	if err != nil {
+		panic(err)
+	}
+
 	logger.Verbosef("Device started")
 
 	errs := make(chan error)
