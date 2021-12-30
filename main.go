@@ -10,10 +10,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"runtime"
 	"strconv"
 	"syscall"
+	"time"
 
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
@@ -257,6 +259,24 @@ func main() {
 	}()
 
 	logger.Verbosef("UAPI listener started")
+
+	// configure system to do routing
+	time.Sleep(2 * time.Second)
+	err = exec.Command("ip", "link", "set", "up", "dev", interfaceName).Run()
+	if err != nil {
+		panic(err)
+	}
+	subnet := device.AutoSubnet()
+	logger.Verbosef("route %s via %s", subnet, interfaceName)
+	err = exec.Command("ip", "-6", "route", "add", subnet, "dev", interfaceName).Run()
+	if err != nil {
+		panic(err)
+	}
+	logger.Verbosef("enable IPv6 forwarding")
+	err = exec.Command("sysctl", "set", "net.ipv6.conf.all.forwarding=1").Run()
+	if err != nil && err.Error() != "exit status 255" {
+		panic(err)
+	}
 
 	// wait for program to terminate
 

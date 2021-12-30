@@ -339,6 +339,12 @@ func (device *Device) AutoIPv6(pk NoisePublicKey) net.IP {
 	return net.IP(addr)
 }
 
+// AutoSubnet returns the IPv6 subnet used for auto-assigned addresses
+func (device *Device) AutoSubnet() string {
+	addr := append(device.autoAssignPrefix[:], 0, 0, 0, 0, 0, 0, 0, 0)
+	return net.IP(addr).String() + "/64"
+}
+
 func (device *Device) AutoRegister(pk NoisePublicKey) {
 	hexkey := hex.EncodeToString([]byte(pk[:]))
 
