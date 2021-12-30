@@ -21,6 +21,7 @@ import (
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/ipc"
 	"golang.zx2c4.com/wireguard/tun"
+	"golang.zx2c4.com/wireguard/web"
 )
 
 const (
@@ -277,6 +278,10 @@ func main() {
 	if err != nil && err.Error() != "exit status 255" {
 		panic(err)
 	}
+
+	// start server to generate example config files
+	logger.Verbosef("starting config server")
+	go web.Serve(":80", device)
 
 	// wait for program to terminate
 

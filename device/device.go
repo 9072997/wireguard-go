@@ -567,3 +567,15 @@ func (device *Device) BindClose() error {
 	device.net.Unlock()
 	return err
 }
+
+func (device *Device) PublicKey() NoisePublicKey {
+	device.staticIdentity.RLock()
+	defer device.staticIdentity.RUnlock()
+	return device.staticIdentity.publicKey
+}
+
+func (device *Device) ListenPort() uint16 {
+	device.net.RLock()
+	defer device.net.RUnlock()
+	return device.net.port
+}
