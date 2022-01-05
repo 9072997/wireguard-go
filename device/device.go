@@ -6,6 +6,7 @@
 package device
 
 import (
+	"errors"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -353,11 +354,11 @@ func (device *Device) RemoveAllPeers() {
 	device.peers.keyMap = make(map[NoisePublicKey]*Peer)
 }
 
-func (device *Device) Close() {
+func (device *Device) Close() error {
 	device.state.Lock()
 	defer device.state.Unlock()
 	if device.isClosed() {
-		return
+		return errors.New("already closed")
 	}
 	atomic.StoreUint32(&device.state.state, uint32(deviceStateClosed))
 	device.log.Verbosef("Device closing")
@@ -381,6 +382,8 @@ func (device *Device) Close() {
 
 	device.log.Verbosef("Device closed")
 	close(device.closed)
+
+	return nil
 }
 
 func (device *Device) Wait() chan struct{} {
