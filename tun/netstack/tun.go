@@ -227,7 +227,11 @@ func (net *Net) DialContextTCP(ctx context.Context, addr *net.TCPAddr) (*gonet.T
 	if addr == nil {
 		return net.DialContextTCPAddrPort(ctx, netip.AddrPort{})
 	}
-	return net.DialContextTCPAddrPort(ctx, netip.AddrPortFrom(netip.AddrFromSlice(addr.IP), uint16(addr.Port)))
+	ip, ok := netip.AddrFromSlice(addr.IP)
+	if !ok {
+		return nil, fmt.Errorf("invalid IP address: %v", addr.IP)
+	}
+	return net.DialContextTCPAddrPort(ctx, netip.AddrPortFrom(ip, uint16(addr.Port)))
 }
 
 func (net *Net) DialTCPAddrPort(addr netip.AddrPort) (*gonet.TCPConn, error) {
@@ -239,7 +243,11 @@ func (net *Net) DialTCP(addr *net.TCPAddr) (*gonet.TCPConn, error) {
 	if addr == nil {
 		return net.DialTCPAddrPort(netip.AddrPort{})
 	}
-	return net.DialTCPAddrPort(netip.AddrPortFrom(netip.AddrFromSlice(addr.IP), uint16(addr.Port)))
+	ip, ok := netip.AddrFromSlice(addr.IP)
+	if !ok {
+		return nil, fmt.Errorf("invalid IP address: %v", addr.IP)
+	}
+	return net.DialTCPAddrPort(netip.AddrPortFrom(ip, uint16(addr.Port)))
 }
 
 func (net *Net) ListenTCPAddrPort(addr netip.AddrPort) (*gonet.TCPListener, error) {
@@ -251,7 +259,11 @@ func (net *Net) ListenTCP(addr *net.TCPAddr) (*gonet.TCPListener, error) {
 	if addr == nil {
 		return net.ListenTCPAddrPort(netip.AddrPort{})
 	}
-	return net.ListenTCPAddrPort(netip.AddrPortFrom(netip.AddrFromSlice(addr.IP), uint16(addr.Port)))
+	ip, ok := netip.AddrFromSlice(addr.IP)
+	if !ok {
+		return nil, fmt.Errorf("invalid IP address: %v", addr.IP)
+	}
+	return net.ListenTCPAddrPort(netip.AddrPortFrom(ip, uint16(addr.Port)))
 }
 
 func (net *Net) DialUDPAddrPort(laddr, raddr netip.AddrPort) (*gonet.UDPConn, error) {
@@ -273,10 +285,18 @@ func (net *Net) DialUDPAddrPort(laddr, raddr netip.AddrPort) (*gonet.UDPConn, er
 func (net *Net) DialUDP(laddr, raddr *net.UDPAddr) (*gonet.UDPConn, error) {
 	var la, ra netip.AddrPort
 	if laddr != nil {
-		la = netip.AddrPortFrom(netip.AddrFromSlice(laddr.IP), uint16(laddr.Port))
+		ip, ok := netip.AddrFromSlice(laddr.IP)
+		if !ok {
+			return nil, fmt.Errorf("invalid IP address: %v", laddr.IP)
+		}
+		la = netip.AddrPortFrom(ip, uint16(laddr.Port))
 	}
 	if raddr != nil {
-		ra = netip.AddrPortFrom(netip.AddrFromSlice(raddr.IP), uint16(raddr.Port))
+		ip, ok := netip.AddrFromSlice(raddr.IP)
+		if !ok {
+			return nil, fmt.Errorf("invalid IP address: %v", raddr.IP)
+		}
+		ra = netip.AddrPortFrom(ip, uint16(raddr.Port))
 	}
 	return net.DialUDPAddrPort(la, ra)
 }
