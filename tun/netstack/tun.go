@@ -83,8 +83,15 @@ func (e *endpoint) WritePacket(_ stack.RouteInfo, _ tcpip.NetworkProtocolNumber,
 	return nil
 }
 
-func (e *endpoint) WritePackets(stack.RouteInfo, stack.PacketBufferList, tcpip.NetworkProtocolNumber) (int, tcpip.Error) {
-	panic("not implemented")
+func (e *endpoint) WritePackets(rt stack.RouteInfo, pkts stack.PacketBufferList, pn tcpip.NetworkProtocolNumber) (sent int, err tcpip.Error) {
+	for pkt := pkts.Front(); pkt != nil; pkt = pkt.Next() {
+		err = e.WritePacket(rt, pn, pkt)
+		if err != nil {
+			return
+		}
+		sent++
+	}
+	return
 }
 
 func (e *endpoint) WriteRawPacket(*stack.PacketBuffer) tcpip.Error {
